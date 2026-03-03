@@ -1,0 +1,493 @@
+<!DOCTYPE html>
+<html lang="sv">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Musikquiz</title>
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg: #0a0a0f;
+    --surface: #13131c;
+    --surface2: #1c1c2e;
+    --accent: #f0c040;
+    --accent2: #e8445a;
+    --text: #f0eee8;
+    --muted: #6b6b80;
+    --correct: #3ecf6e;
+    --wrong: #e8445a;
+    --border: rgba(240,192,64,0.15);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: flex-start;
+    padding: 20px 20px 60px;
+    background-image:
+      radial-gradient(ellipse 80% 60% at 50% -10%, rgba(240,192,64,0.08) 0%, transparent 60%),
+      repeating-linear-gradient(0deg, transparent, transparent 80px, rgba(255,255,255,0.01) 80px, rgba(255,255,255,0.01) 81px),
+      repeating-linear-gradient(90deg, transparent, transparent 80px, rgba(255,255,255,0.01) 80px, rgba(255,255,255,0.01) 81px);
+  }
+
+  .container { width: 100%; max-width: 680px; padding-top: 32px; }
+
+  .header { text-align: center; margin-bottom: 28px; }
+  .header h1 {
+    font-family: 'Bebas Neue', sans-serif;
+    font-size: clamp(52px, 10vw, 84px);
+    letter-spacing: 6px; line-height: 1;
+    color: var(--accent);
+    text-shadow: 0 0 40px rgba(240,192,64,0.3), 0 0 80px rgba(240,192,64,0.1);
+  }
+  .header p { color: var(--muted); font-size: 14px; letter-spacing: 2px; text-transform: uppercase; margin-top: 6px; }
+
+  .admin-link-wrap { text-align: center; margin-bottom: 20px; }
+  .admin-link {
+    font-size: 12px; color: var(--muted); letter-spacing: 1px;
+    cursor: pointer; background: none; border: none;
+    font-family: 'DM Sans', sans-serif; transition: color 0.2s; padding: 4px 8px;
+  }
+  .admin-link:hover { color: var(--accent); }
+
+  .progress-wrap { margin-bottom: 24px; }
+  .progress-meta { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
+  .progress-label { font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; color: var(--accent); }
+  .score-pill { background: var(--surface2); border: 1px solid var(--border); border-radius: 20px; padding: 4px 14px; font-size: 13px; font-weight: 600; color: var(--accent); }
+  .progress-bar-bg { height: 4px; background: var(--surface2); border-radius: 2px; overflow: hidden; }
+  .progress-bar-fill { height: 100%; background: linear-gradient(90deg, var(--accent), var(--accent2)); border-radius: 2px; transition: width 0.5s cubic-bezier(.4,0,.2,1); }
+
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 16px; padding: 28px; position: relative; overflow: hidden; animation: slideUp 0.35s cubic-bezier(.4,0,.2,1); }
+  .card::before { content: ''; position: absolute; top: 0; left: 0; right: 0; height: 2px; background: linear-gradient(90deg, transparent, var(--accent), transparent); opacity: 0.6; }
+
+  .question-num { font-family: 'Bebas Neue', sans-serif; font-size: 13px; letter-spacing: 3px; color: var(--muted); text-transform: uppercase; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+  .question-num span.badge { background: var(--accent); color: #000; border-radius: 4px; padding: 2px 8px; font-size: 12px; }
+  .sub-question { margin-bottom: 24px; }
+  .sub-label { display: flex; align-items: center; gap: 10px; margin-bottom: 10px; }
+  .sub-letter { font-family: 'Bebas Neue', sans-serif; font-size: 22px; color: var(--accent); min-width: 20px; }
+  .sub-question-text { font-size: 16px; font-weight: 500; line-height: 1.4; color: var(--text); }
+
+  .answer-input { width: 100%; background: var(--surface2); border: 1px solid rgba(255,255,255,0.08); border-radius: 10px; padding: 12px 16px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 15px; outline: none; transition: border-color 0.2s, box-shadow 0.2s; -webkit-appearance: none; }
+  .answer-input::placeholder { color: var(--muted); }
+  .answer-input:focus { border-color: rgba(240,192,64,0.4); box-shadow: 0 0 0 3px rgba(240,192,64,0.07); }
+
+  .divider { height: 1px; background: var(--border); margin: 24px 0; }
+
+  .tiebreaker-tag { display: inline-flex; align-items: center; gap: 6px; background: linear-gradient(135deg, rgba(232,68,90,0.2), rgba(240,192,64,0.1)); border: 1px solid rgba(232,68,90,0.4); border-radius: 6px; padding: 4px 12px; font-size: 12px; font-weight: 600; letter-spacing: 1px; text-transform: uppercase; color: var(--accent2); margin-bottom: 14px; }
+  .tiebreaker-question { font-size: 18px; font-weight: 600; line-height: 1.4; margin-bottom: 16px; }
+  .tiebreaker-hint { font-size: 13px; color: var(--muted); margin-top: 8px; }
+
+  .btn-row { display: flex; gap: 12px; margin-top: 28px; }
+  .btn { flex: 1; padding: 14px 20px; border-radius: 10px; border: none; font-family: 'Bebas Neue', sans-serif; font-size: 18px; letter-spacing: 2px; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s, opacity 0.2s; }
+  .btn:active { transform: scale(0.97); }
+  .btn-primary { background: var(--accent); color: #000; box-shadow: 0 4px 20px rgba(240,192,64,0.25); }
+  .btn-primary:hover { box-shadow: 0 4px 30px rgba(240,192,64,0.45); }
+  .btn-secondary { background: var(--surface2); color: var(--text); border: 1px solid var(--border); }
+  .btn-secondary:hover { border-color: rgba(240,192,64,0.3); }
+  .btn-danger { background: rgba(232,68,90,0.15); color: var(--accent2); border: 1px solid rgba(232,68,90,0.3); }
+  .btn-danger:hover { background: rgba(232,68,90,0.25); }
+
+  .result-screen { text-align: center; padding: 10px 0; }
+  .result-icon { font-size: 64px; margin-bottom: 16px; animation: pop 0.5s cubic-bezier(.175,.885,.32,1.275); }
+  .result-title { font-family: 'Bebas Neue', sans-serif; font-size: 48px; letter-spacing: 4px; color: var(--accent); margin-bottom: 8px; }
+  .result-subtitle { color: var(--muted); font-size: 15px; margin-bottom: 32px; }
+  .score-display { background: var(--surface2); border: 1px solid var(--border); border-radius: 16px; padding: 24px; margin-bottom: 24px; position: relative; overflow: hidden; }
+  .score-display::before { content: ''; position: absolute; inset: 0; background: radial-gradient(ellipse at 50% 0%, rgba(240,192,64,0.06), transparent 70%); }
+  .score-big { font-family: 'Bebas Neue', sans-serif; font-size: 80px; line-height: 1; color: var(--accent); text-shadow: 0 0 30px rgba(240,192,64,0.4); }
+  .score-max { font-size: 14px; color: var(--muted); margin-top: 4px; }
+  .tiebreak-result { margin-top: 12px; font-size: 14px; color: var(--text); background: rgba(232,68,90,0.1); border: 1px solid rgba(232,68,90,0.2); border-radius: 8px; padding: 10px 16px; }
+
+  .intro-screen { text-align: center; }
+  .intro-screen p { color: var(--muted); font-size: 15px; line-height: 1.7; margin-bottom: 24px; }
+  .rules-list { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; padding: 16px 20px; text-align: left; margin-bottom: 28px; }
+  .rules-list li { list-style: none; padding: 6px 0; font-size: 14px; color: var(--muted); display: flex; align-items: flex-start; gap: 10px; }
+  .rules-list li::before { content: '♩'; color: var(--accent); flex-shrink: 0; }
+  .name-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 18px; text-align: center; outline: none; margin-bottom: 24px; transition: border-color 0.2s, box-shadow 0.2s; }
+  .name-input::placeholder { color: var(--muted); }
+  .name-input:focus { border-color: rgba(240,192,64,0.5); box-shadow: 0 0 0 3px rgba(240,192,64,0.08); }
+
+  /* ADMIN */
+  .admin-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 24px; flex-wrap: wrap; gap: 12px; }
+  .admin-title { font-family: 'Bebas Neue', sans-serif; font-size: 32px; letter-spacing: 3px; color: var(--accent); }
+  .admin-meta { font-size: 13px; color: var(--muted); margin-top: 4px; }
+  .admin-actions { display: flex; gap: 10px; flex-wrap: wrap; }
+
+  .export-btn { background: none; border: 1px solid var(--border); color: var(--accent); border-radius: 8px; padding: 8px 16px; font-size: 13px; letter-spacing: 1px; cursor: pointer; font-family: 'Bebas Neue', sans-serif; transition: background 0.2s; }
+  .export-btn:hover { background: rgba(240,192,64,0.1); }
+
+  .participant-card { background: var(--surface2); border: 1px solid var(--border); border-radius: 12px; overflow: hidden; margin-bottom: 12px; transition: border-color 0.2s; }
+  .participant-card:hover { border-color: rgba(240,192,64,0.3); }
+  .participant-top { display: flex; align-items: center; justify-content: space-between; padding: 16px 20px; cursor: pointer; gap: 10px; }
+  .participant-info { display: flex; align-items: center; gap: 14px; }
+  .rank-badge { font-family: 'Bebas Neue', sans-serif; font-size: 26px; min-width: 36px; text-align: center; }
+  .rank-1 { color: #ffd700; } .rank-2 { color: #c0c0c0; } .rank-3 { color: #cd7f32; } .rank-other { color: var(--muted); }
+  .participant-name { font-family: 'Bebas Neue', sans-serif; font-size: 20px; letter-spacing: 2px; }
+  .participant-time { font-size: 12px; color: var(--muted); margin-top: 2px; }
+  .chevron { color: var(--muted); font-size: 16px; transition: transform 0.2s; }
+  .chevron.open { transform: rotate(180deg); }
+
+  .participant-body { padding: 0 20px 18px; border-top: 1px solid var(--border); }
+  .answers-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(130px, 1fr)); gap: 8px; margin-top: 14px; }
+  .ans-cell { background: rgba(255,255,255,0.03); border: 1px solid rgba(255,255,255,0.06); border-radius: 8px; padding: 8px 10px; }
+  .ans-cell-label { font-size: 11px; color: var(--muted); margin-bottom: 3px; letter-spacing: 1px; }
+  .ans-cell-val { font-size: 13px; font-weight: 500; word-break: break-word; }
+  .participant-tb { font-size: 13px; color: var(--accent2); background: rgba(232,68,90,0.1); border: 1px solid rgba(232,68,90,0.2); border-radius: 6px; padding: 6px 12px; margin-top: 12px; display: inline-block; }
+
+  .empty-state { text-align: center; padding: 48px 0; }
+  .empty-state div { font-size: 48px; margin-bottom: 16px; }
+  .empty-state p { color: var(--muted); font-size: 15px; line-height: 1.6; }
+
+  .login-wrap { text-align: center; }
+  .login-wrap p { color: var(--muted); font-size: 14px; margin-bottom: 20px; }
+  .login-input { width: 100%; background: var(--surface2); border: 1px solid var(--border); border-radius: 10px; padding: 14px 18px; color: var(--text); font-family: 'DM Sans', sans-serif; font-size: 16px; text-align: center; outline: none; margin-bottom: 16px; transition: border-color 0.2s, box-shadow 0.2s; }
+  .login-input:focus { border-color: rgba(240,192,64,0.5); box-shadow: 0 0 0 3px rgba(240,192,64,0.08); }
+  .login-error { color: var(--accent2); font-size: 13px; margin-top: -8px; margin-bottom: 12px; }
+
+  .feedback-bar { height: 36px; display: flex; align-items: center; justify-content: center; font-size: 13px; font-weight: 600; border-radius: 8px; margin-top: 14px; opacity: 0; transition: opacity 0.3s; letter-spacing: 0.5px; }
+  .feedback-bar.show { opacity: 1; }
+  .feedback-bar.nope { background: rgba(232,68,90,0.15); color: var(--wrong); }
+
+  @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+  @keyframes pop { 0% { transform: scale(0); } 100% { transform: scale(1); } }
+</style>
+</head>
+<body>
+<div class="container" id="app"></div>
+
+<script>
+/* ── KONFIG ── */
+const ADMIN_PASSWORD = 'quiz2024'; // ← Byt till ditt eget lösenord
+const TIEBREAKER_CORRECT = 7428954; // Rätt svar på utslagsfrågan
+const NUM_QUESTIONS = 10;
+
+const TIEBREAKER = {
+  question: "Utslagsfråga",
+  hint: "Ange ditt svar — närmast rätt svar vinner!"
+};
+
+// Används bara internt av admin för kolumnrubriker
+const QUESTIONS = Array.from({ length: NUM_QUESTIONS }, (_, i) => ({ a: `Fråga ${i+1}A`, b: `Fråga ${i+1}B` }));
+
+/* ── LAGRING (sparas under sessionen) ── */
+let submissions = [];
+try { submissions = JSON.parse(sessionStorage.getItem('mq_submissions') || '[]'); } catch(e) {}
+
+function saveSubmissions() {
+  try { sessionStorage.setItem('mq_submissions', JSON.stringify(submissions)); } catch(e) {}
+}
+
+/* ── STATE ── */
+let state = {
+  screen: 'intro',
+  name: '',
+  currentQ: 0,
+  answers: [],
+  tiebreakerAnswer: '',
+  adminPass: '',
+  adminPassError: false,
+  collapsed: {},
+};
+
+/* ── HJÄLPFUNKTIONER ── */
+function esc(s) {
+  return String(s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/* ── RENDER ── */
+function render() {
+  const app = document.getElementById('app');
+  app.innerHTML = '';
+
+  // Header
+  const header = document.createElement('div');
+  header.className = 'header';
+  header.innerHTML = `<h1>MUSIK&shy;QUIZ</h1><p>Svara på alla frågor</p>`;
+  app.appendChild(header);
+
+  // Admin-länk (visas ej i adminpanelen)
+  if (state.screen !== 'admin' && state.screen !== 'admin_login') {
+    const al = document.createElement('div');
+    al.className = 'admin-link-wrap';
+    al.innerHTML = `<button class="admin-link" id="adminLinkBtn">⚙ Adminpanel</button>`;
+    app.appendChild(al);
+  }
+
+  // Progress bar (quiz-läge)
+  if (state.screen === 'quiz') {
+    const pw = document.createElement('div');
+    pw.className = 'progress-wrap';
+    const pct = (state.currentQ / NUM_QUESTIONS) * 100;
+    pw.innerHTML = `
+      <div class="progress-meta">
+        <span class="progress-label">Fråga ${state.currentQ + 1} / ${QUESTIONS.length}</span>
+        <span class="score-pill">👤 ${esc(state.name)}</span>
+      </div>
+      <div class="progress-bar-bg"><div class="progress-bar-fill" style="width:${pct}%"></div></div>`;
+    app.appendChild(pw);
+  }
+
+  const card = document.createElement('div');
+  card.className = 'card';
+  app.appendChild(card);
+
+  if (state.screen === 'intro') renderIntro(card);
+  else if (state.screen === 'quiz') renderQuiz(card);
+  else if (state.screen === 'tiebreaker') renderTiebreaker(card);
+  else if (state.screen === 'result') renderResult(card);
+  else if (state.screen === 'admin_login') renderAdminLogin(card);
+  else if (state.screen === 'admin') renderAdmin(card);
+
+  document.getElementById('adminLinkBtn')?.addEventListener('click', () => {
+    state.screen = 'admin_login'; state.adminPass = ''; state.adminPassError = false; render();
+  });
+}
+
+/* ── INTRO ── */
+function renderIntro(card) {
+  card.innerHTML = `
+    <div class="intro-screen">
+      <div style="font-size:48px;margin-bottom:16px;">🎵</div>
+      <p>Välkommen till Musikquizet! Fyll i ditt namn och svara på 10 frågor med a- och b-delar. Vid lika poäng avgör en utslagsfråga vinnaren.</p>
+      <input class="name-input" id="nameInput" placeholder="Ditt namn..." maxlength="30" value="${esc(state.name)}" />
+      <ul class="rules-list">
+        <li>10 frågor med a- och b-delfrågor (20 poäng totalt)</li>
+        <li>Varje korrekt svar ger 1 poäng</li>
+        <li>Utslagsfråga vid lika poäng — närmast vinner</li>
+        <li>Du kan inte gå tillbaka till föregående fråga</li>
+      </ul>
+      <button class="btn btn-primary" id="startBtn" style="width:100%;font-size:22px;">STARTA QUIZ</button>
+    </div>`;
+  card.querySelector('#nameInput').addEventListener('input', e => { state.name = e.target.value; });
+  card.querySelector('#startBtn').addEventListener('click', () => {
+    if (!state.name.trim()) { alert('Ange ditt namn!'); return; }
+    state.screen = 'quiz'; state.currentQ = 0; state.answers = []; render();
+  });
+  setTimeout(() => card.querySelector('#nameInput')?.focus(), 100);
+}
+
+/* ── QUIZ ── */
+function renderQuiz(card) {
+  card.innerHTML = `
+    <div class="question-num"><span class="badge">FRÅGA ${state.currentQ + 1} / ${NUM_QUESTIONS}</span></div>
+    <div class="sub-question">
+      <div class="sub-label"><span class="sub-letter">A</span></div>
+      <input class="answer-input" id="ansA" placeholder="Svar på fråga ${state.currentQ + 1}A..." autocomplete="off" />
+    </div>
+    <div class="divider"></div>
+    <div class="sub-question">
+      <div class="sub-label"><span class="sub-letter">B</span></div>
+      <input class="answer-input" id="ansB" placeholder="Svar på fråga ${state.currentQ + 1}B..." autocomplete="off" />
+    </div>
+    <div class="feedback-bar" id="feedback"></div>
+    <div class="btn-row">
+      <button class="btn btn-primary" id="nextBtn">${state.currentQ < NUM_QUESTIONS - 1 ? 'NÄSTA FRÅGA →' : 'TILL UTSLAGSFRÅGAN →'}</button>
+    </div>`;
+  card.querySelector('#nextBtn').addEventListener('click', () => {
+    const a = card.querySelector('#ansA').value.trim();
+    const b = card.querySelector('#ansB').value.trim();
+    if (!a || !b) {
+      const fb = card.querySelector('#feedback');
+      fb.textContent = '⚠ Fyll i båda svaren!';
+      fb.className = 'feedback-bar show nope';
+      return;
+    }
+    state.answers.push({ a, b });
+    state.currentQ++;
+    state.screen = state.currentQ >= NUM_QUESTIONS ? 'tiebreaker' : 'quiz';
+    render();
+  });
+  setTimeout(() => card.querySelector('#ansA')?.focus(), 100);
+}
+
+/* ── UTSLAGSFRÅGA ── */
+function renderTiebreaker(card) {
+  card.innerHTML = `
+    <div class="tiebreaker-tag">⚡ Utslagsfråga</div>
+    <div class="tiebreaker-question" style="font-size:15px;color:var(--muted);font-weight:400;">Ange ditt svar på utslagsfrågan.</div>
+    <input class="answer-input" id="tbAns" placeholder="Ditt svar..." autocomplete="off" style="margin-top:16px;" value="${esc(state.tiebreakerAnswer)}" />
+    <p class="tiebreaker-hint">${TIEBREAKER.hint}</p>
+    <div class="btn-row" style="margin-top:24px;">
+      <button class="btn btn-primary" id="finishBtn">LÄMNA IN SVAR 🎶</button>
+    </div>`;
+  card.querySelector('#tbAns').addEventListener('input', e => { state.tiebreakerAnswer = e.target.value; });
+  card.querySelector('#finishBtn').addEventListener('click', () => {
+    if (!state.tiebreakerAnswer.trim()) { alert('Ange ett svar på utslagsfrågan!'); return; }
+    submissions.push({
+      id: Date.now(),
+      name: state.name,
+      answers: [...state.answers],
+      tiebreaker: state.tiebreakerAnswer,
+      submittedAt: new Date().toLocaleTimeString('sv-SE', { hour: '2-digit', minute: '2-digit' }),
+    });
+    saveSubmissions();
+    state.screen = 'result'; render();
+  });
+  setTimeout(() => card.querySelector('#tbAns')?.focus(), 100);
+}
+
+/* ── RESULTAT ── */
+function renderResult(card) {
+  card.innerHTML = `
+    <div class="result-screen">
+      <div class="result-icon">🎶</div>
+      <div class="result-title">KLART!</div>
+      <p class="result-subtitle">Tack ${esc(state.name)}! Dina svar har registrerats.</p>
+      <div class="score-display">
+        <div style="font-size:13px;color:var(--muted);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px;">Svar registrerade</div>
+        <div class="score-big">${state.answers.length * 2}</div>
+        <div class="score-max">möjliga poäng (${state.answers.length} frågor × 2)</div>
+        <div class="tiebreak-result">⚡ Utslagssvar: <strong>${esc(state.tiebreakerAnswer)}</strong></div>
+      </div>
+      <p style="color:var(--muted);font-size:13px;margin-bottom:24px;">Resultatet presenteras när alla har svarat. Lycka till! 🤞</p>
+      <button class="btn btn-secondary" id="restartBtn" style="width:100%;">NY DELTAGARE</button>
+    </div>`;
+  card.querySelector('#restartBtn').addEventListener('click', () => {
+    state = { screen: 'intro', name: '', currentQ: 0, answers: [], tiebreakerAnswer: '', adminPass: '', adminPassError: false, collapsed: {} };
+    render();
+  });
+}
+
+/* ── ADMIN LOGIN ── */
+function renderAdminLogin(card) {
+  card.innerHTML = `
+    <div class="login-wrap">
+      <div style="font-size:40px;margin-bottom:16px;">🔐</div>
+      <p>Ange lösenordet för att komma åt adminpanelen.</p>
+      <input class="login-input" id="passInput" type="password" placeholder="Lösenord..." autocomplete="off" />
+      ${state.adminPassError ? '<p class="login-error">⚠ Fel lösenord — försök igen.</p>' : ''}
+      <div class="btn-row">
+        <button class="btn btn-secondary" id="backBtn">AVBRYT</button>
+        <button class="btn btn-primary" id="loginBtn">LOGGA IN</button>
+      </div>
+    </div>`;
+  const inp = card.querySelector('#passInput');
+  inp.addEventListener('input', e => { state.adminPass = e.target.value; });
+  inp.addEventListener('keydown', e => { if (e.key === 'Enter') tryLogin(); });
+  card.querySelector('#loginBtn').addEventListener('click', tryLogin);
+  card.querySelector('#backBtn').addEventListener('click', () => { state.screen = 'intro'; render(); });
+  setTimeout(() => inp?.focus(), 100);
+
+  function tryLogin() {
+    if (state.adminPass === ADMIN_PASSWORD) {
+      state.screen = 'admin'; state.adminPassError = false; render();
+    } else {
+      state.adminPassError = true; render();
+    }
+  }
+}
+
+/* ── ADMINPANEL ── */
+function tbDiff(val) {
+  const n = parseFloat(String(val).replace(/\s/g, '').replace(',', '.'));
+  return isNaN(n) ? Infinity : Math.abs(n - TIEBREAKER_CORRECT);
+}
+
+function renderAdmin(card) {
+  const n = submissions.length;
+
+  // Sort by tiebreaker closeness (for display ranking)
+  const sorted = [...submissions].sort((a, b) => tbDiff(a.tiebreaker) - tbDiff(b.tiebreaker));
+
+  let html = `
+    <div class="admin-header">
+      <div>
+        <div class="admin-title">🎛 ADMINPANEL</div>
+        <div class="admin-meta">${n} deltagare registrerade</div>
+      </div>
+      <div class="admin-actions">
+        <button class="export-btn" id="exportBtn">⬇ EXPORTERA CSV</button>
+        <button class="btn btn-danger" style="flex:unset;padding:8px 16px;font-size:14px;letter-spacing:1px;" id="clearBtn">🗑 RENSA ALLA</button>
+        <button class="btn btn-secondary" style="flex:unset;padding:8px 16px;font-size:14px;letter-spacing:1px;" id="backBtn">← TILLBAKA</button>
+      </div>
+    </div>
+    <div style="background:rgba(240,192,64,0.07);border:1px solid var(--border);border-radius:10px;padding:10px 16px;margin-bottom:18px;font-size:13px;color:var(--muted);">
+      ⚡ Rätt svar utslagsfråga: <strong style="color:var(--accent)">${TIEBREAKER_CORRECT.toLocaleString('sv-SE')}</strong> — sorterat efter närmast svar
+    </div>`;
+
+  if (n === 0) {
+    html += `<div class="empty-state"><div>📭</div><p>Inga svar har lämnats in ännu.<br>Dela länken med deltagarna!</p></div>`;
+  } else {
+    sorted.forEach((sub, idx) => {
+      const open = !state.collapsed[sub.id];
+      const rankEmoji = ['🥇','🥈','🥉'][idx] || (idx + 1);
+      const rankClass = idx < 3 ? `rank-${idx+1}` : 'rank-other';
+      const diff = tbDiff(sub.tiebreaker);
+      const diffLabel = diff === Infinity ? 'ogiltigt svar' : (diff === 0 ? '✓ Exakt!' : `±${diff.toLocaleString('sv-SE')}`);
+      const diffColor = diff === 0 ? 'var(--correct)' : diff < 1000 ? 'var(--accent)' : 'var(--muted)';
+      html += `
+        <div class="participant-card">
+          <div class="participant-top" data-toggle="${sub.id}">
+            <div class="participant-info">
+              <span class="rank-badge ${rankClass}">${rankEmoji}</span>
+              <div>
+                <div class="participant-name">${esc(sub.name)}</div>
+                <div class="participant-time">Inlämnad kl ${sub.submittedAt}</div>
+              </div>
+            </div>
+            <div style="display:flex;align-items:center;gap:12px;">
+              <span style="font-size:13px;color:${diffColor};font-weight:600;">${diffLabel}</span>
+              <span class="chevron ${open ? 'open' : ''}">▼</span>
+            </div>
+          </div>
+          ${open ? `
+          <div class="participant-body">
+            <div class="answers-grid">
+              ${sub.answers.map((ans, i) => `
+                <div class="ans-cell"><div class="ans-cell-label">F${i+1} – A</div><div class="ans-cell-val">${esc(ans.a)}</div></div>
+                <div class="ans-cell"><div class="ans-cell-label">F${i+1} – B</div><div class="ans-cell-val">${esc(ans.b)}</div></div>
+              `).join('')}
+            </div>
+            <div class="participant-tb">⚡ Utslagssvar: <strong>${esc(sub.tiebreaker)}</strong> <span style="opacity:0.6;">(${diffLabel})</span></div>
+          </div>` : ''}
+        </div>`;
+    });
+  }
+
+  card.innerHTML = html;
+
+  card.querySelectorAll('[data-toggle]').forEach(el => {
+    el.addEventListener('click', () => {
+      const id = parseInt(el.dataset.toggle);
+      state.collapsed[id] = !state.collapsed[id];
+      render();
+    });
+  });
+  card.querySelector('#backBtn')?.addEventListener('click', () => { state.screen = 'intro'; render(); });
+  card.querySelector('#exportBtn')?.addEventListener('click', exportCSV);
+  card.querySelector('#clearBtn')?.addEventListener('click', () => {
+    if (confirm(`Är du säker? Det raderar alla ${n} svar permanent.`)) {
+      submissions = [];
+      saveSubmissions();
+      render();
+    }
+  });
+}
+
+/* ── EXPORTERA CSV ── */
+function exportCSV() {
+  if (!submissions.length) { alert('Inga svar att exportera.'); return; }
+  const header = ['Namn', 'Tid', ...QUESTIONS.map((_, i) => [`F${i+1}A`, `F${i+1}B`]).flat(), 'Utslagssvar'];
+  const rows = submissions.map(s => [
+    s.name, s.submittedAt,
+    ...s.answers.map(a => [a.a, a.b]).flat(),
+    s.tiebreaker,
+  ]);
+  const csv = [header, ...rows].map(r => r.map(v => `"${String(v||'').replace(/"/g,'""')}"`).join(',')).join('\n');
+  const blob = new Blob(['\uFEFF' + csv], { type: 'text/csv;charset=utf-8;' });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = 'musikquiz_svar.csv'; a.click();
+  URL.revokeObjectURL(url);
+}
+
+render();
+</script>
+</body>
+</html>
